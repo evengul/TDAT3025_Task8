@@ -98,7 +98,6 @@ class QLearning:
     # Train the agent
     def train(self):
         # For every episode
-        print(self.num_episodes)
         for e in range(self.num_episodes):
             # Get a start-position given by the environment
             current_state = self.discretize_state(self.env.reset())

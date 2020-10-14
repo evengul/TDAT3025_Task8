@@ -123,8 +123,8 @@ class GridWorld:
         pygame.time.wait(250)
 
 
-agent = QLearning(GridWorld(), buckets=(10, 10, 10, 10), lower_bounds=0, upper_bounds=9, num_episodes=500,
-                  min_lr=0.05, min_epsilon=0.3)
+agent = QLearning(GridWorld(), buckets=(10, 10, 10, 10), lower_bounds=0, upper_bounds=9, num_episodes=1000,
+                  min_lr=0.001, min_epsilon=0.3)
 
 
 def run():
