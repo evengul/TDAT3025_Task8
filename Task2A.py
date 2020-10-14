@@ -3,6 +3,7 @@ import pygame
 import numpy as np
 import random
 import sys
+import math
 from QLearning import QLearning
 
 vec = pygame.math.Vector2
@@ -14,14 +15,6 @@ MOVE_LENGTH = PLAYER_LENGTH + 2 * GRID_WIDTH  # PLAYER_LENGTH / 2 + 2 * GRID_WID
 ZERO_POS = GRID_WIDTH + PLAYER_LENGTH / 2
 
 
-class Arrow(pygame.sprite.Sprite):
-    def __init__(self, x=0, y=0):
-        super().__init__()
-        self.x = x
-        self.y = y
-        self.color = (255, 0, 0)
-
-
 class Target(pygame.sprite.Sprite):
     def __init__(self, x=3, y=4):
         super().__init__()
@@ -31,7 +24,7 @@ class Target(pygame.sprite.Sprite):
 
 
 class Player(pygame.sprite.Sprite):
-    def __init__(self, x=0, y=0):
+    def __init__(self, x=5, y=7):
         super().__init__()
         self.x = x
         self.y = y
@@ -69,7 +62,6 @@ class GridWorld:
         self.steps = 0
         self.player = Player()
         self.target = Target()
-        self.arrow = Arrow()
 
         self.action_space = GridWorldActionSpace()
         self.observation_space = GridWorldObservationSpace()
@@ -80,17 +72,15 @@ class GridWorld:
     def step(self, action):
         self.steps += 1
         self.player.move(action)
-        reward = self.is_rewarded()
+        reward = self.calculate_reward()
         done = reward == 1
         if self.steps > 50:
             done = True
         return (self.player.x, self.player.y, self.target.x, self.target.y), reward, done, ""
 
-    def is_rewarded(self):
-        if self.player.x == self.target.x and self.player.y == self.target.y:
-            return 1
-        else:
-            return 0
+    def calculate_reward(self):
+        return 1 - math.floor((math.sqrt(math.pow(self.player.x - self.target.x, 2) +
+                               math.pow(self.player.y - self.target.y, 2))))
 
     def reset(self):
         self.player = Player()
@@ -106,8 +96,8 @@ class GridWorld:
     def render_table(self, Q_table):
         for y in range(len(Q_table)):
             for x in range(len(Q_table[y])):
-                if np.argmax(Q_table[y][x][3][9]) > 0:
-                    color_value = int(round(np.argmax(Q_table[y][x][3][9]) / 4. * 255))
+                if np.argmax(Q_table[x][y][self.target.x][self.target.y]) > 0:
+                    color_value = int(round(np.argmax(Q_table[x][y][self.target.x][self.target.y]) / 4. * 255))
                     self.render_box(x, y, (color_value, color_value, color_value))
                 else:
                     self.render_box(x, y, (0, 0, 255))
@@ -133,7 +123,8 @@ class GridWorld:
         pygame.time.wait(250)
 
 
-agent = QLearning(GridWorld(), buckets=(10, 10, 10, 10))
+agent = QLearning(GridWorld(), buckets=(10, 10, 10, 10), lower_bounds=0, upper_bounds=9, num_episodes=500,
+                  min_lr=0.05, min_epsilon=0.3)
 
 
 def run():
@@ -151,9 +142,11 @@ def run():
 
 
 agent.train()
-agent.plot_learning()
+# agent.plot_learning()
 
-# Used to find the positions the Q-table is actually using
+# print(agent.Q_table[4][4][3][4])
+#
+# # Used to find the positions the Q-table is actually using
 # for y_player in range(len(agent.Q_table)):
 #     for x_player in range(len(agent.Q_table[y_player])):
 #         for y_target in range(len(agent.Q_table[y_player][x_player])):
@@ -162,7 +155,10 @@ agent.plot_learning()
 #                     print("(%i,%i,%i,%i)=>%s" % (y_player, x_player, y_target, x_target,
 #                                                  np.argmax(agent.Q_table[y_player][x_player][y_target][x_target])))
 
-print("Successful: " + str(run() < 50))
+t = run()
+print("Successful: " + str(t < 50))
+if t < 50:
+    print("In %i steps" % t)
 
 
 

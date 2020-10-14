@@ -98,6 +98,7 @@ class QLearning:
     # Train the agent
     def train(self):
         # For every episode
+        print(self.num_episodes)
         for e in range(self.num_episodes):
             # Get a start-position given by the environment
             current_state = self.discretize_state(self.env.reset())
@@ -134,7 +135,6 @@ class QLearning:
         done = False
         current_state = self.discretize_state(self.env.reset())
         while not done:
-            print("render %i" % t)
             self.env.render()
             t += 1
             action = self.choose_action(current_state)
