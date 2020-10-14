@@ -1,18 +1,22 @@
-# Implement Q-learning and use this to solve the cartpole-environment
-import gym
 import math
+
 import numpy as np
 import seaborn as sns
-import matplotlib.pyplot as plt
-env = gym.make('CartPole-v0')
-observation = env.reset()
-
-# Source: https://github.com/JoeSnow7/Reinforcement-Learning/blob/master/Cartpole%20Q-learning.ipynb
+from matplotlib import pyplot as plt
 
 
-# We define a class to contain the learning algorithm
-class CartPoleQLearning:
-    def __init__(self, buckets=(3, 3, 6, 6), num_episodes=500, min_lr=0.1, min_epsilon=0.1, discount=1.0, decay=25):
+class QLearning:
+    def __init__(self,
+                 init_env,
+                 buckets=(3, 3, 6, 6),
+                 num_episodes=500,
+                 min_lr=0.1,
+                 min_epsilon=0.1,
+                 discount=1.0,
+                 decay=25,
+                 data_is_discrete=False,
+                 lower_bounds=-1,
+                 upper_bounds=-1):
         # The amount of buckets for position, velocity, angle of the pole and velocity at the tip of the pole,
         # respectively. This makes it a lot easier to create discrete states we can work with
         self.buckets = buckets
@@ -27,8 +31,10 @@ class CartPoleQLearning:
         # Used to ensure epsilon and lr gets smaller as the function runs
         self.decay = decay
 
+        self.is_discrete = data_is_discrete
+
         # The gym environment we're running
-        self.env = gym.make('CartPole-v0')
+        self.env = init_env
 
         # The initial Q-table. It starts out as zeros, and enters ones at relevant positions
         self.Q_table = np.zeros(self.buckets + (self.env.action_space.n,))
@@ -36,8 +42,13 @@ class CartPoleQLearning:
         # The bucket bounds
         self.upper_bounds = [self.env.observation_space.high[0], 0.5,
                              self.env.observation_space.high[2], math.radians(50) / 1.]
+        if upper_bounds > -1:
+            self.upper_bounds = np.multiply(np.ones(len(buckets),), upper_bounds)
+
         self.lower_bounds = [self.env.observation_space.low[0], -0.5,
                              self.env.observation_space.low[2], -math.radians(50) / 1.]
+        if lower_bounds > -1:
+            self.lower_bounds = np.multiply(np.ones(len(buckets),), lower_bounds)
 
         # For visualising each step
         self.steps = np.zeros(self.num_episodes)
@@ -62,14 +73,6 @@ class CartPoleQLearning:
             return self.env.action_space.sample()
         else:
             return np.argmax(self.Q_table[state])
-
-    # Selects action based on (non-discretized) state
-    def get_action(self, state, e):
-        obs = self.discretize_state(state)
-        action_vector = self.Q_table[obs]
-        epsilon = self.get_epsilon(e)
-        action_vector = self.normalize(action_vector, epsilon)
-        return action_vector
 
     # Normalizes the action vector into probabilities that sum to 1
     def normalize(self, action_vector, epsilon):
@@ -131,23 +134,11 @@ class CartPoleQLearning:
         done = False
         current_state = self.discretize_state(self.env.reset())
         while not done:
+            print("render %i" % t)
             self.env.render()
             t += 1
             action = self.choose_action(current_state)
             obs, reward, done, _ = self.env.step(action)
             new_state = self.discretize_state(obs)
             current_state = new_state
-        self.env.close()
         return t
-
-
-# Load an agent, train, plot and run it.
-def load_q_learning():
-    agent = CartPoleQLearning()
-    agent.train()
-    agent.plot_learning()
-    agent.run()
-    return agent
-
-
-load_q_learning()
